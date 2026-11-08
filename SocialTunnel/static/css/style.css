@@ -1,0 +1,26 @@
+/* These few rules cover details that are specific to index.html. */
+    body {
+    background-color: #FFFAFA;
+    }
+
+    .message-list {
+        min-height: 180px;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .message-mine {
+    margin-left: auto;
+    background-color: #e7f1ff;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+

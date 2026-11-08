@@ -1,0 +1,9 @@
+# Keep the Python package installer near this version.
+pip~=25.1.1
+# Django runs the website and connects it to the database.
+django
+# Django REST Framework lets Django answer requests with JSON data.
+djangorestframework
+# SimpleJWT supplies the login tokens used by the API.
+djangorestframework-simplejwt
+# No PostgreSQL driver is listed: the current settings use SQLite.
