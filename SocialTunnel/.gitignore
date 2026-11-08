@@ -1,0 +1,18 @@
+# Ignore local environment files
+venv/
+env/
+.env
+
+# Ignore heavy frontend package dependencies
+node_modules/
+dist/
+
+# Ignore Python runtime files and system cache files
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+
+# Ignore local temporary testing files
+db.sqlite3
+.DS_Store
