@@ -1,4 +1,3 @@
-
     // The page and API are served by the same Django site.
     const BACKEND_URL = window.location.origin;
     // Remember who the open message conversation is with.
@@ -68,7 +67,8 @@
         bubble.className = `message-bubble border rounded p-2 mb-2${message.is_mine ? " message-mine" : ""}`;
         const meta = document.createElement("div");
         meta.className = "small text-secondary mb-1";
-     //   meta.textContent = `${message.sender} · ${new Date(message.timestamp).toLocaleString()}`;
+        // Un-comment the line below if your model supplies timestamps:
+        // meta.textContent = `${message.sender} · ${new Date(message.timestamp).toLocaleString()}`;
         const content = document.createElement("div");
         content.textContent = message.message_text;
         bubble.append(meta, content);
@@ -183,8 +183,7 @@
       setStatus(authStatus, "You have been logged out.", "success");
     });
 
-/*
-   // On a page reload, check a saved token before showing the signed-in area.
+    // On a page reload, check a saved token before showing the signed-in area.
     window.addEventListener("DOMContentLoaded", async () => {
       if (!localStorage.getItem("access_token")) return;
       try {
@@ -194,6 +193,6 @@
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         showLogin();
-        setStatus(authStatus, "Your session expired. Please log in again.", "danger");
       }
-    }); */
+    });
+

@@ -24,3 +24,22 @@
         display: none !important;
     }
 
+/* Custom Visibility Utility used by JavaScript toggles */
+.hidden {
+    display: none !important;
+}
+
+/* Chat bubble alignment formatting logic */
+.message-bubble {
+    max-width: 75%;
+    clear: both;
+    word-wrap: break-word;
+}
+
+/* Moves your own messages to the right side of the box container */
+.message-mine {
+    float: right;
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary-border-subtle) !important;
+    color: var(--bs-primary-text-emphasis);
+}

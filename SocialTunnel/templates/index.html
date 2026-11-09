@@ -10,17 +10,17 @@
 </head>
 <body>
   <!-- A small heading at the top of every screen. -->
-  <nav class="navbar bg-success border-bottom">
+  <nav class="navbar navbar-dark bg-success border-bottom shadow-sm">
     <div class="container">
       <a class="navbar-brand fw-semibold" href="/">SocialTunnel</a>
-      <span class="navbar-text small">Exclusive Map2Tech social network</span>
+      <span class="navbar-text small text-white-50">Exclusive Map2Tech social network</span>
     </div>
   </nav>
 
   <!-- Django sends this page; JavaScript below fills it with API results. -->
   <main class="container py-4 py-md-5">
     <!-- Visitors use this form to log in or create an account. -->
-    <section id="login-section" class="row justify-content-center">
+    <div id="login-section" class="row justify-content-center">
       <div class="col-12 col-md-7 col-lg-5">
         <div class="card shadow-sm">
           <div class="card-body p-4">
@@ -44,10 +44,10 @@
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- JavaScript shows this area after the server accepts the user's token. -->
-    <section id="dashboard-section" class="hidden">
+    <div id="dashboard-section" class="hidden">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
           <h1 class="h3 mb-1">Welcome, <span id="welcome-name">friend</span></h1>
@@ -57,7 +57,8 @@
       </div>
 
       <div class="row g-4">
-        <!-- Post API is hidden for now;.
+        <!-- Post API is hidden for now -->
+        <!-- 
         <section class="col-12 col-lg-6" aria-labelledby="feed-title">
           <div class="card shadow-sm h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -82,32 +83,35 @@
         -->
 
         <!-- This panel opens and sends one-to-one conversations. -->
-        <section class="col-12" aria-labelledby="messages-title">
+        <div class="col-12" aria-labelledby="messages-title">
           <div class="card shadow-sm">
-            <div class="card-header bg-success">
+            <div class="card-header bg-success text-white">
               <h2 id="messages-title" class="h5 mb-0">Direct messages</h2>
             </div>
             <div class="card-body">
               <form id="conversation-form" class="input-group mb-3">
                 <label for="recipient" class="visually-hidden">Username</label>
                 <input class="form-control" id="recipient" name="recipient" autocomplete="off" placeholder="Username to message" required>
-                <button class="btn btn-outline-primary" type="submit">Open</button>
+                <button class="btn btn-outline-success" type="submit">Open</button>
               </form>
               <p id="conversation-label" class="small text-secondary">Choose a username to open a conversation.</p>
-              <div id="messages" class="message-list border rounded p-3 mb-3" aria-live="polite">
+              
+              <!-- Chat History display drawer -->
+              <div id="messages" class="message-list border rounded p-3 mb-3" aria-live="polite" style="height: 300px; overflow-y: auto; background-color: var(--bs-gray-100);">
                 <p class="small text-secondary mb-0">No conversation open.</p>
               </div>
+              
               <form id="message-form">
                 <label for="message-text" class="visually-hidden">Your message</label>
                 <textarea class="form-control" id="message-text" name="message" rows="2" maxlength="2000" placeholder="Write a message" required disabled></textarea>
-                <button id="send-button" class="btn btn-primary mt-2" type="submit" disabled>Send</button>
+                <button id="send-button" class="btn btn-success mt-2" type="submit" disabled>Send</button>
               </form>
             </div>
           </div>
-        </section>
+        </div>
       </div>
       <p id="app-status" class="small mt-3" role="status" aria-live="polite"></p>
-    </section>
+    </div>
   </main>
   <script src="/static/js/home.js"></script>
 </body>
