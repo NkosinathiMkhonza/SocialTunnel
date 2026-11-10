@@ -5,6 +5,40 @@ from rest_framework.test import APITestCase
 from .models import Text
 
 
+class ActiveUserRegistryTests(APITestCase):
+    def setUp(self):
+        self.alice = User.objects.create_user(
+            username='alice',
+            password='test-password'
+        )
+        self.bob = User.objects.create_user(
+            username='bob',
+            password='test-password'
+        )
+        User.objects.create_user(
+            username='inactive',
+            password='test-password',
+            is_active=False
+        )
+
+    def test_active_users_require_authentication(self):
+        response = self.client.get(reverse('api_active_users'))
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_registry_returns_active_users_except_requester(self):
+        self.client.force_authenticate(user=self.alice)
+
+        response = self.client.get(reverse('api_active_users'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['total_user_count'], 1)
+        self.assertEqual(
+            response.data['users'],
+            [{'id': self.bob.id, 'username': 'bob'}]
+        )
+
+
 class PostsTemporarilyDisabledTests(APITestCase):
     def test_posts_url_is_not_available_while_feature_is_disabled(self):
         response = self.client.get('/api/posts/')

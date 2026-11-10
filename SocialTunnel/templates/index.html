@@ -56,9 +56,13 @@
         <button id="logout-button" class="btn btn-outline-secondary btn-sm" type="button">Log out</button>
       </div>
 
+      <!--
+        The grid assigns the narrower left column to member discovery and the
+        wider right column to conversation controls and message history.
+      -->
       <div class="row g-4">
-        <!-- Post API is hidden for now -->
-        <!-- 
+        <!-- The feed is hidden while this dashboard focuses on messaging. -->
+        <!--
         <section class="col-12 col-lg-6" aria-labelledby="feed-title">
           <div class="card shadow-sm h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -82,9 +86,20 @@
         </section>
         -->
 
-        <!-- This panel opens and sends one-to-one conversations. -->
-        <div class="col-12" aria-labelledby="messages-title">
-          <div class="card shadow-sm">
+        <!-- This column lists members available for one-to-one conversations. -->
+        <aside class="col-12 col-lg-4" aria-labelledby="user-list-title">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <h2 id="user-list-title" class="h5 mb-0">Members</h2>
+              <span id="user-count-badge" class="badge rounded-pill text-bg-success">0</span>
+            </div>
+            <div id="user-registry-list" class="list-group list-group-flush" aria-label="Active members"></div>
+          </div>
+        </aside>
+
+        <!-- This wider column contains conversation controls and message history. -->
+        <section class="col-12 col-lg-8" aria-labelledby="messages-title">
+          <div class="card shadow-sm h-100">
             <div class="card-header bg-success text-white">
               <h2 id="messages-title" class="h5 mb-0">Direct messages</h2>
             </div>
@@ -108,7 +123,7 @@
               </form>
             </div>
           </div>
-        </div>
+        </section>
       </div>
       <p id="app-status" class="small mt-3" role="status" aria-live="polite"></p>
     </div>

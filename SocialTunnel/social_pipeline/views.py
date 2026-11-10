@@ -1,11 +1,14 @@
-# social_pipeline/views.py
+from django.contrib.auth.models import User
+from django.db.models import Q
+
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth.models import User
-from django.db.models import Q
-from .models import Post, Text
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.views import APIView
+
+from .models import Post, Text as TextMessage
 
 
 # Connected to /api/register/ in config/urls.py.
@@ -99,19 +102,78 @@ def posts_view(request):
         "created_at": post.created_at,
         "is_mine": True,
     }, status=status.HTTP_201_CREATED)
+class ActiveUserRegistryView(APIView):
+    """
+    Return active accounts other than the account making the request.
+
+    The request first passes through JWT authentication and the authenticated
+    permission check. The GET handler then filters the User table to records
+    whose is_active field is true, excludes the authenticated user's primary
+    key, counts the remaining records, and serializes each record's id and
+    username into the users array.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Apply the active-account and current-user filters in sequence.
+
+        First, filter(is_active=True) limits the queryset to enabled accounts.
+        Next, exclude(pk=request.user.pk) removes the authenticated requester,
+        so that account is not included in either the count or the array.
+        Finally, count() calculates total_user_count, and iteration over the
+        same queryset creates one JSON-ready object per remaining account.
+        """
+        users = User.objects.filter(is_active=True).exclude(
+            pk=request.user.pk
+        ).order_by('username')
+
+        return Response({
+            'total_user_count': users.count(),
+            'users': [
+                {
+                    'id': user.id,
+                    'username': user.username,
+                }
+                for user in users
+            ],
+        })
 
 
-# Connected to /api/messages/ in config/urls.py.
-# GET reads a conversation; POST saves a message to another user.
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def messages_view(request):
-    if request.method == 'GET':
-        # Find the other account named in the page's conversation box.
+class DirectMessagePipelineView(APIView):
+    """
+    Read a two-way conversation or save a direct message.
+
+    JWT authentication runs before either handler, and IsAuthenticated
+    prevents anonymous callers from reading or writing private messages. The
+    existing Text model is imported as TextMessage here so the query code
+    names the message records descriptively without changing the database
+    model or requiring a migration.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Return messages exchanged with the username in the query string.
+
+        First, trim the username parameter so surrounding whitespace does not
+        change the account lookup. If it is missing, return a 400 response. If
+        User.objects.get cannot find that username, return 404. Otherwise,
+        build one Q condition for messages sent by the requester to that user
+        and a second Q condition for messages sent in the opposite direction.
+        The | operator combines those conditions as an OR, so the resulting
+        queryset contains both sides of the mutual conversation. Related user
+        rows are fetched with select_related, and order_by returns messages in
+        timestamp and id order before they are serialized.
+        """
         username = request.query_params.get('username', '').strip()
         if not username:
             return Response(
-                {"error": "A username is required to open a conversation."},
+                {'error': 'A username is required to open a conversation.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -119,68 +181,80 @@ def messages_view(request):
             other_user = User.objects.get(username=username)
         except User.DoesNotExist:
             return Response(
-                {"error": "That user does not exist."},
+                {'error': 'That user does not exist.'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Return messages in both directions between this user and the other user.
-        messages = Text.objects.filter(
-            Q(sender=request.user, recipient=other_user) |
-            Q(sender=other_user, recipient=request.user)
-        ).select_related('sender', 'recipient').order_by('timestamp', 'id')
+        messages = TextMessage.objects.filter(
+            Q(sender=request.user, recipient=other_user)
+            | Q(sender=other_user, recipient=request.user)
+        ).select_related(
+            'sender',
+            'recipient'
+        ).order_by('timestamp', 'id')
+
         return Response({
-            "conversation_with": other_user.username,
-            "messages": [
+            'conversation_with': other_user.username,
+            'messages': [
                 {
-                    "id": message.id,
-                    "sender": message.sender.username,
-                    "recipient": message.recipient.username,
-                    "message_text": message.message_text,
-                    "timestamp": message.timestamp,
-                    "is_mine": message.sender_id == request.user.id,
+                    'id': message.id,
+                    'sender': message.sender.username,
+                    'recipient': message.recipient.username,
+                    'message_text': message.message_text,
+                    'timestamp': message.timestamp,
+                    'is_mine': message.sender_id == request.user.id,
                 }
                 for message in messages
-            ]
+            ],
         })
 
-    # For a new message, read the destination name and message text from the request.
-    recipient_name = request.data.get('recipient', '').strip()
-    message_text = request.data.get('message', '').strip()
-    if not recipient_name or not message_text:
-        return Response(
-            {"error": "Both recipient and message are required."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if len(message_text) > 2000:
-        return Response(
-            {"error": "Messages must be 2000 characters or fewer."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if recipient_name == request.user.username:
-        return Response(
-            {"error": "You cannot send a direct message to yourself."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    def post(self, request):
+        """
+        Validate the destination and text, then insert one message record.
 
-    try:
-        recipient = User.objects.get(username=recipient_name)
-    except User.DoesNotExist:
-        return Response(
-            {"error": "That user does not exist."},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        First, trim recipient and message values from the JSON request body.
+        Reject missing values, overlong text, or a request to message oneself.
+        Next, look up the recipient by username and return 404 if no account
+        matches. Finally, create the database row with request.user as sender,
+        so a caller cannot choose a different sender in the request body, and
+        return the saved record with an HTTP 201 response.
+        """
+        recipient_name = request.data.get('recipient', '').strip()
+        message_text = request.data.get('message', '').strip()
+        if not recipient_name or not message_text:
+            return Response(
+                {'error': 'Both recipient and message are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if len(message_text) > 2000:
+            return Response(
+                {'error': 'Messages must be 2000 characters or fewer.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if recipient_name == request.user.username:
+            return Response(
+                {'error': 'You cannot send a direct message to yourself.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-    # The logged-in account is always the sender of a message it submits.
-    message = Text.objects.create(
-        sender=request.user,
-        recipient=recipient,
-        message_text=message_text
-    )
-    return Response({
-        "id": message.id,
-        "sender": request.user.username,
-        "recipient": recipient.username,
-        "message_text": message.message_text,
-        "timestamp": message.timestamp,
-        "is_mine": True,
-    }, status=status.HTTP_201_CREATED)
+        try:
+            recipient = User.objects.get(username=recipient_name)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'That user does not exist.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        message = TextMessage.objects.create(
+            sender=request.user,
+            recipient=recipient,
+            message_text=message_text
+        )
+        return Response({
+            'id': message.id,
+            'sender': request.user.username,
+            'recipient': recipient.username,
+            'message_text': message.message_text,
+            'timestamp': message.timestamp,
+            'is_mine': True,
+        }, status=status.HTTP_201_CREATED)

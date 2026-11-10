@@ -18,29 +18,61 @@ from django.contrib import admin
 from django.urls import path
 from django.views.generic import TemplateView
 from rest_framework.authtoken.views import obtain_auth_token
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from social_pipeline.views import alternative_feed_view, messages_view, register_user_view
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from social_pipeline.views import (
+    ActiveUserRegistryView,
+    DirectMessagePipelineView,
+    alternative_feed_view,
+    register_user_view,
+)
 
 urlpatterns = [
-    # /admin/ opens Django's built-in administration page.
+    # Admin clients open Django's built-in administration page.
     path('admin/', admin.site.urls),
 
-    # / serves the login page and the social dashboard.
+    # Browser clients open the login page and social dashboard.
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
 
-    # Login with a username and password to receive JWT tokens; refresh gets a new access token.
+    # API clients obtain an authentication token with username and password.
     path('api/login/', obtain_auth_token, name='api-login'),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # API clients obtain a JWT access and refresh token pair.
+    path(
+        'api/token/',
+        TokenObtainPairView.as_view(),
+        name='token_obtain_pair',
+    ),
+    # API clients exchange a refresh token for a new access token.
+    path(
+        'api/token/refresh/',
+        TokenRefreshView.as_view(),
+        name='token_refresh',
+    ),
 
-    # /social_pipeline/new-feed/ returns the current sample feed response.
-    path('social_pipeline/new-feed/', alternative_feed_view, name='alternative_feed'),
+    # API clients request the current sample feed response.
+    path(
+        'social_pipeline/new-feed/',
+        alternative_feed_view,
+        name='alternative_feed',
+    ),
 
-    # /api/register/ creates an account.
+    # API clients create an account with registration details.
     path('api/register/', register_user_view, name='api_register'),
+    # API clients list active accounts other than the requester.
+    path(
+        'api/users/',
+        ActiveUserRegistryView.as_view(),
+        name='api_active_users',
+    ),
     # Post feature under construction
     # path('api/posts/', posts_view, name='api_posts'),
 
-    # /api/messages/ reads a conversation with GET and sends a message with POST.
-    path('api/messages/', messages_view, name='api_messages'),
+    # API clients read a conversation or send a direct message.
+    path(
+        'api/messages/',
+        DirectMessagePipelineView.as_view(),
+        name='api_messages',
+    ),
 ]
