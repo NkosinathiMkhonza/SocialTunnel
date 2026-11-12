@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.views import APIView
 
-from .models import Post, Text as TextMessage
+from .models import Message, Post
 
 
 @api_view(['POST'])
@@ -138,7 +138,7 @@ class DirectMessagePipelineView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        messages = TextMessage.objects.filter(
+        messages = Message.objects.filter(
             Q(sender=request.user, recipient=other_user)
             | Q(sender=other_user, recipient=request.user)
         ).select_related(
@@ -188,7 +188,7 @@ class DirectMessagePipelineView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        message = TextMessage.objects.create(
+        message = Message.objects.create(
             sender=request.user,
             recipient=recipient,
             message_text=message_text
